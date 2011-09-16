@@ -1,0 +1,148 @@
+
+This is a collection of low level example programs for the LCP2387
+on the FEZ Panda.  The FEZ Panda is an Arduino form factor board that
+is ARM based instead of AVR based.  It comes with some sort of .NET
+firmware.
+
+Sparkfun is having a sale for some reason,
+http://www.sparkfun.com/products/10146
+perhaps they are simply replacing it with the Panda II
+http://www.sparkfun.com/products/10749
+
+The FEZ Panda has jtag pins, but they are disabled so they say.  The
+Panda II does not prevent you from using them.  Being an LPC part
+once you erase it you can program it using a serial port, a number
+of ftdi based breakout boards are available at sparkfun.
+
+If you erase the firmware you will need either a serial solution or
+jtag solution (there may be a usb solution but I dont know or have not
+tried it).
+
+It took me longer than it should have to get the as-shipped firmware
+off of there.  It is pretty easy.
+http://wiki.tinyclr.com/index.php?title=Porting_Details
+
+My problem was I mis-read it I thought you loaded like an application
+instead you use the X command to upgrade the firmware, remember to
+use Xmodem-1K not plain old Xmodem.  I ended up using Windows, having
+to install their driver if you dont have hyperterm use the free one
+they recommend.  When you power the board hold the LDR button this
+puts it in the right mode.  Figure out what com port is the ACM0 one,
+it is virtual so the baud rate does not matter, there is no baud rate
+it is USB speed.
+
+
+You will want/need the schematic:
+http://www.ghielectronics.com/catalog/product/135
+Use the downloads tab to grab the "General" items.   the windows drivers
+for the virtual serial are at the bottom of the dowloads section.
+
+You will also need the users manual
+Start here:
+http://www.keil.com/dd/chip/4531.htm
+For whatever reason this page
+www.nxp.com/pip/LPC2387.html
+does not have the users manual, you may want the all docs zip file
+
+You are expected to have some C programming experience, this is not
+a how to program C tutorial.  Programming assembly language for ARM or
+thumb is useful but not required, by the second or third blinker example
+a framework is established so that you dont need to write assembler,
+just use the files provided.
+
+It is not difficult to create an assembler and linker, a C compiler
+a little more difficult, esp if you need/want gcc or C libraries.
+
+These days the best gcc based tools for ARM are from CodeSourcery
+http://www.codesourcery.com
+(now are owned/changed to Mentor Graphics).
+
+At the moment the product is called CodeBench, you want the Lite
+Edition for ARM.  Download the current EABI version.  C compiler,
+Assembler, and linker are all included.  If you want a pay-for
+version with support, by all means, go for it.  Other toolchains
+are available, the examples in this repository are limited to
+gcc and llvm (see below).
+
+Another compiler which is gaining and possibly passing gcc by is the
+LLVM project.  http://llvm.org.
+There are pre-built binaries available or you can build it yourself
+it is much simpler than the gnu tools and unless you specify not to
+you get a compiler for all the targets at the same time in one shot.
+With gcc you have to start over and rebuild a separate toolchain for
+each specific target and target options.
+
+if on Ubuntu
+sudo apt-get install llvm clang
+
+llvm will compile for any of the supported targets, but not necessarily
+link, so this repository uses gnu binutils to assemble and link the
+code produced by LLVM.
+
+If you get and install CodeSourcery lite for example you wont need
+to separately build binutils for arm.  If you only want to use
+assembly language or only LLMV and not gcc, then you may want to build
+your own binutils.
+
+Get the current binutils sources
+http://ftp.gnu.org/gnu/binutils/
+As of this writing binutils-2.21.1a is the current
+
+untar the sources somewhere
+
+./configure --target=arm-none-eabi --prefix=/path/to/somewhere/
+make
+make install
+add /path/to/somewhere/bin to your PATH.  Or perhaps dont use the
+--prefix configure option
+
+
+
+Loading and running programs:
+
+The proglpc directory contains a program that can be used to load
+your programs into the device.  Lpc/nxp and some other chip vendors
+have a nice feature where a small bootloader is in the part and
+depending on the state of an input pin or two you can load your program
+using the serial port.  Each vendor does this their own way but what
+it provides is a way to program the part without having to use additiona
+tools like JTAG programmers, etc.  And you can do this with as little
+as two pins (JTAG normally takes 5 or so).
+
+The bootloader itself is in a separate flash from the flash that you
+will use for your program.  So you dont have to worry about messing up
+the bootloader and bricking the chip.  There is probably a way to
+erase and reprogram that bootloader, proglpc is not capable of erasing
+that memory.
+
+To put the chip into the bootloader where you can use proglpc to program
+it.  Hold the ldr button when powering on (plugging in the usb) or
+hold the ldr button and press reset (then you can release the ldr button.
+You have to have used the GHI page above to remove their .NET software.
+
+When looking down on the card (side of the card with the big chip
+in the middle), with the usb connector at the bottom, the RX and TX
+serial connections are in the top left corner of the board, in the
+header.  Near the bottom of that header is a ground.  Careful not
+to use the 3.3V hole, that will melt some parts.
+
+If your serial port is connected through is /dev/ttyUSB0
+then:
+
+proglpc /dev/ttyUSB0 program.bin
+
+If you want to do an erase all add anything as the fourth parameter.
+
+proglpc /dev/ttyUSB0 program.bin x
+
+Since proglpc is already connected to the serial port of the device
+and your program may want to use the uart for debugging, etc (we will
+get into some samples) proglpc stays connected and prints out whatever
+comes in from the serial port of the device.  Ctrl-C if you are not
+interested or done with proglpc.
+
+So at the moment the procedure is:
+
+1) press ldr while pressing reset, then release both
+2) proglpc /dev/ttyUSB0 program.bin
+3) press the reset button on the board, without pressing ldr
