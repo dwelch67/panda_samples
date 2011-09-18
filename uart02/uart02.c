@@ -1,4 +1,7 @@
 
+//-------------------------------------------------------------------
+//-------------------------------------------------------------------
+
 extern void PUT32 ( unsigned int, unsigned int );
 extern unsigned int GET32 ( unsigned int );
 extern void dummy ( unsigned int );
@@ -40,10 +43,22 @@ extern void dummy ( unsigned int );
 //-------------------------------------------------------------------
 void pll_init ( void )
 {
-    //use the main (external) oscillator
     PUT32(SCS,1<<5);
     while((GET32(SCS)&(1<<6))==0) continue;
     PUT32(CLKSRCSEL,1);
+    PUT32(PLLCFG,((1-1)<<16)|(12-1)); //nsel=1, msel=12
+    PUT32(PLLFEED,0xAA);
+    PUT32(PLLFEED,0x55);
+    PUT32(PLLCON,1);
+    PUT32(PLLFEED,0xAA);
+    PUT32(PLLFEED,0x55);
+    while((GET32(PLLSTAT) & (1<<24)) == 0) continue;
+    PUT32(CCLKCFG,(4-1)); //cclksel = 4
+    while((GET32(PLLSTAT) & (1<<26)) == 0) continue;
+    PUT32(PLLCON,3);
+    PUT32(PLLFEED,0xAA);
+    PUT32(PLLFEED,0x55);
+    while((GET32(PLLSTAT) & (1<<25)) == 0) continue;
 }
 //-------------------------------------------------------------------
 void uart_init ( void )
@@ -51,16 +66,16 @@ void uart_init ( void )
     PUT32(PCONP,GET32(PCONP)|(1<<3)); //PCUART0, should be on already.
     PUT32(PCLKSEL0,(GET32(PCLKSEL0)&(~(3<<6)))|(1<<6)); //CCLK/1
     PUT32(PINSEL0,(GET32(PINSEL0)&(~(0xF<<4)))|(0x5<<4)); //TXD0/RXD0
-//12000000 Hz PCLK 38400 baud
-//dl 0x10 mul 0x09 div 0x02 baud 38352 diff 48
+//72000000 Hz PCLK 38400 baud
+//dl 0x4A mul 0x0C div 0x07 baud 38407 diff 7
     PUT32(U0ACR,0x00); //no autobaud
     PUT32(U0LCR,0x83); //dlab=1; N81
-    PUT32(U0DLL,0x10); //dl = 0x0010
-    PUT32(U0DLM,0x00); //dl = 0x0010
+    PUT32(U0DLL,0x4A); //dl = 0x004A
+    PUT32(U0DLM,0x00); //dl = 0x004A
     PUT32(U0IER,0x00); //no interrupts
     PUT32(U0LCR,0x03); //dlab=0; N81
     PUT32(U0IER,0x00); //no interrupts
-    PUT32(U0FDR,(0x9<<4)|(0x2<<0)); //mul 0x09, div 0x02
+    PUT32(U0FDR,(0xC<<4)|(0x7<<0)); //mul 0x0C, div 0x07
     PUT32(U0FCR,(1<<2)|(1<<1)|(1<<0)); //enable and reset fifos
     PUT32(U0TER,(1<<7)); //transmit enable
 }
@@ -105,10 +120,8 @@ void hexstring ( unsigned int d, unsigned int cr )
 //-------------------------------------------------------------------
 void  notmain ( void )
 {
-
     pll_init();
     uart_init();
-
     hexstring(0x12345678,1);
     hexstring(0x12345678,1);
 }
