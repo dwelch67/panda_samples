@@ -1,0 +1,14 @@
+
+/* memmap */
+MEMORY
+{
+   rom(RX)   : ORIGIN = 0x00000000, LENGTH = 0x8000
+   ram(WAIL) : ORIGIN = 0x40000000, LENGTH = 0x2000
+}
+
+SECTIONS
+{
+   .text : { *(.text*) } > rom
+   .bss  : { *(.bss*) } > ram
+}
+

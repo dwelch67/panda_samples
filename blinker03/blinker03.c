@@ -59,5 +59,8 @@ void  notmain ( void )
 //For me this takes 10 seconds so 4,000,000 MHz is the CCLK rate
 //when powered up like this.
 
+//This processor boots up using the internal oscillator, the internal
+//oscillator for this chip is 4MHz.  That matches what we found.
+
 
 
